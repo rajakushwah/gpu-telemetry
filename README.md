@@ -13,7 +13,27 @@ in **[docs/HLD.md](docs/HLD.md)**.
 ## Quick start
 
 **You only need Docker.** Everything else (Go, the database, tooling) runs in
-containers. From this folder:
+containers.
+
+### Prerequisites (Docker)
+
+Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) (macOS /
+Windows) or Docker Engine + Compose (Linux). **Start the Docker engine** before
+you run any commands below (Docker Desktop must show “running” in the menu bar).
+
+Confirm the CLI works in your terminal:
+
+```bash
+docker version          # must show both Client and Server
+docker compose version  # Compose v2 plugin (bundled with Docker Desktop)
+```
+
+If `docker` is “command not found” on macOS, either open a new terminal after
+installing Docker Desktop, or enable **Settings → General → “Add Docker CLI
+tools to PATH”** (wording may vary by version). On Linux, ensure your user can
+run Docker (often: add yourself to the `docker` group and log in again).
+
+From this folder:
 
 ```bash
 make demo        # build, start everything, and verify it works
