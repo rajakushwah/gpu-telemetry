@@ -174,9 +174,25 @@ telemetry (ts, gpu_uuid, metric, value, labels JSONB,
 **Why TimescaleDB:** the data is time-series and the main query is "one GPU,
 over a time window, ordered by time". TimescaleDB is PostgreSQL, so I get SQL,
 transactions and unique constraints (for deduplication), plus time-partitioned
-chunks and retention built in. A pure TSDB such as InfluxDB lacks easy
-unique-key deduplication. A plain NoSQL store would need hand-built time
-indexing.
+chunks, retention and compression built in.
+
+Alternatives I considered:
+
+- **Plain PostgreSQL:** works, but I'd have to hand-build time partitioning,
+  retention and compression. Without compression the data grew to 55 GB in
+  10 hours (section 10.5).
+- **InfluxDB:** a good metrics store (it also collapses duplicate points), but
+  weaker for the relational side: GPU metadata, joins, transactions,
+  constraints. It also has a different query language.
+- **ClickHouse:** excellent for heavy analytics across all GPUs, but its
+  deduplication is eventual (at merge time) and it's more to operate. It's
+  overkill for per-GPU lookups at about 2.4k rows/s.
+- **Cassandra / ScyllaDB:** built for far higher write scale; time-window
+  queries need careful data modelling, and there's no SQL.
+
+**When I'd revisit:** sustained ingest in the hundreds of thousands of rows/s,
+or analytics across all GPUs as the main workload, points to ClickHouse.
+Pure monitoring with alerting points to Prometheus or VictoriaMetrics.
 
 ## 9. API design
 

@@ -237,10 +237,12 @@ constant append of new readings — classic time-series. TimescaleDB fits this:
 - Time-based tables keep range queries fast as data grows.
 - A unique key gives us free de-duplication for the queue's retries.
 - Built-in data retention keeps a forever-looping stream from filling the disk.
+- Built-in compression: measured at 74× smaller on this data.
 
-(InfluxDB, ClickHouse, Cassandra were considered — heavier or weaker fits for
-simple per-GPU lookups. Plain Postgres would work but we'd hand-build the
-time-series parts.)
+(InfluxDB, ClickHouse and Cassandra were considered. They're weaker for the
+relational side or heavier to run than per-GPU lookups need. Plain Postgres
+would work, but we'd hand-build the time-series parts. Details are in
+[docs/HLD.md](docs/HLD.md), section 8.)
 
 ---
 
