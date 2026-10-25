@@ -1,0 +1,7 @@
+.env
+bin/
+coverage.out
+coverage.html
+
+# Interview brief (not part of the project)
+*.pdf

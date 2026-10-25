@@ -1,0 +1,6 @@
+apiVersion: v2
+name: gpu-telemetry
+description: Elastic GPU telemetry pipeline with a custom message queue
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

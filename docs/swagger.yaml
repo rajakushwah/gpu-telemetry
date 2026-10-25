@@ -1,0 +1,138 @@
+basePath: /api/v1
+definitions:
+  api.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  api.GPUList:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/store.GPU'
+        type: array
+    type: object
+  api.TelemetryPage:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/telemetry.Point'
+        type: array
+      next_cursor:
+        type: string
+    type: object
+  store.GPU:
+    properties:
+      device:
+        type: string
+      gpu_id:
+        type: string
+      hostname:
+        type: string
+      last_seen:
+        type: string
+      model_name:
+        type: string
+      uuid:
+        type: string
+    type: object
+  telemetry.Point:
+    properties:
+      device:
+        type: string
+      gpu_id:
+        type: string
+      gpu_uuid:
+        type: string
+      hostname:
+        type: string
+      labels:
+        additionalProperties:
+          type: string
+        type: object
+      metric:
+        type: string
+      model_name:
+        type: string
+      timestamp:
+        type: string
+      value:
+        type: number
+    type: object
+info:
+  contact: {}
+  description: Query GPU telemetry collected by the elastic telemetry pipeline.
+  title: GPU Telemetry API
+  version: "1.0"
+paths:
+  /gpus:
+    get:
+      description: Returns every GPU for which telemetry is available.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.GPUList'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: List GPUs
+      tags:
+      - gpus
+  /gpus/{id}/telemetry:
+    get:
+      description: Returns telemetry for one GPU ordered by time. Time bounds are
+        inclusive; use next_cursor to page.
+      parameters:
+      - description: GPU UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Inclusive lower bound (RFC 3339)
+        in: query
+        name: start_time
+        type: string
+      - description: Inclusive upper bound (RFC 3339)
+        in: query
+        name: end_time
+        type: string
+      - description: Metric name, e.g. DCGM_FI_DEV_GPU_TEMP
+        in: query
+        name: metric
+        type: string
+      - default: 1000
+        description: Page size (1-10000)
+        in: query
+        name: limit
+        type: integer
+      - description: next_cursor from the previous page
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.TelemetryPage'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Query telemetry for a GPU
+      tags:
+      - gpus
+swagger: "2.0"

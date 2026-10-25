@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-broker
+  labels: {{- include "gt.labels" (dict "root" . "component" "broker") | nindent 4 }}
+spec:
+  selector: {{- include "gt.labels" (dict "root" . "component" "broker") | nindent 4 }}
+  ports: [{ name: http, port: 9000 }]
+---
+# Single replica with a persistent volume: a restart recovers every acknowledged message from the WAL.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-broker
+  labels: {{- include "gt.labels" (dict "root" . "component" "broker") | nindent 4 }}
+spec:
+  serviceName: {{ .Release.Name }}-broker
+  replicas: 1
+  selector:
+    matchLabels: {{- include "gt.labels" (dict "root" . "component" "broker") | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "gt.labels" (dict "root" . "component" "broker") | nindent 8 }}
+    spec:
+      securityContext: { fsGroup: 65532 }
+      containers:
+        - name: broker
+          {{- include "gt.image" . | nindent 10 }}
+          command: ["broker"]
+          {{- include "gt.securityContext" . | nindent 10 }}
+          env:
+            - { name: PARTITIONS, value: {{ .Values.broker.partitions | quote }} }
+            - { name: PARTITION_CAPACITY, value: {{ .Values.broker.partitionCapacity | quote }} }
+            - { name: SESSION_TTL, value: {{ .Values.broker.sessionTTL | quote }} }
+          ports: [{ containerPort: 9000 }]
+          readinessProbe: { httpGet: { path: /healthz, port: 9000 }, periodSeconds: 5 }
+          livenessProbe: { httpGet: { path: /healthz, port: 9000 }, periodSeconds: 10 }
+          resources: {{- toYaml .Values.broker.resources | nindent 12 }}
+          volumeMounts: [{ name: data, mountPath: /var/lib/broker }]
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: { requests: { storage: {{ .Values.broker.storage }} } }

@@ -1,0 +1,38 @@
+image:
+  repository: gpu-telemetry
+  tag: local
+  pullPolicy: IfNotPresent
+
+broker:
+  partitions: 16          # keep >= max collectors (10) so every collector gets work
+  partitionCapacity: 10000
+  sessionTTL: 6s
+  storage: 2Gi
+  resources: { requests: { cpu: 100m, memory: 256Mi }, limits: { memory: 512Mi } }
+
+streamer:
+  replicas: 2             # 1-10; the GPUs are sharded across live streamers
+  interval: 1s
+  batchSize: 500
+  resources: { requests: { cpu: 50m, memory: 64Mi }, limits: { memory: 128Mi } }
+
+collector:
+  replicas: 3             # 1-10; partitions are balanced across collectors
+  batchSize: 1000
+  resources: { requests: { cpu: 50m, memory: 64Mi }, limits: { memory: 256Mi } }
+
+api:
+  replicas: 2
+  service: { type: ClusterIP, port: 8080 }
+  resources: { requests: { cpu: 50m, memory: 64Mi }, limits: { memory: 128Mi } }
+
+timescaledb:
+  image: timescale/timescaledb:2.17.2-pg16
+  user: telemetry
+  database: telemetry
+  storage: 50Gi           # ~2.4k rows/s: newest ~3h uncompressed (~15 GB) + 7 days compressed (~12 GB)
+  # Name of an existing Secret with key "password". If empty, the chart generates one.
+  existingSecret: ""
+
+networkPolicy:
+  enabled: true

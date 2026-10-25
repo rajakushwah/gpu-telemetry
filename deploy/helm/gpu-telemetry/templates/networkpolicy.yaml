@@ -1,0 +1,22 @@
+{{- if .Values.networkPolicy.enabled }}
+# Least privilege: only streamers/collectors reach the broker; only collectors/api reach the database.
+{{- range $target, $spec := dict "broker" (dict "port" 9000 "from" (list "streamer" "collector")) "timescaledb" (dict "port" 5432 "from" (list "collector" "api")) }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $.Release.Name }}-{{ $target }}
+  labels: {{- include "gt.labels" (dict "root" $ "component" $target) | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {{- include "gt.labels" (dict "root" $ "component" $target) | nindent 6 }}
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - { key: app.kubernetes.io/component, operator: In, values: {{ toJson $spec.from }} }
+              - { key: app.kubernetes.io/instance, operator: In, values: [{{ $.Release.Name | quote }}] }
+      ports: [{ port: {{ $spec.port }} }]
+{{- end }}
+{{- end }}

@@ -1,0 +1,7 @@
+.git
+.env
+bin
+coverage.*
+deploy
+*.pdf
+.github

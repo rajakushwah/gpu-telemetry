@@ -1,0 +1,48 @@
+# Streamers and collectors are stateless Deployments; scale with `kubectl scale` and the broker rebalances.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-streamer
+  labels: {{- include "gt.labels" (dict "root" . "component" "streamer") | nindent 4 }}
+spec:
+  replicas: {{ .Values.streamer.replicas }}
+  selector:
+    matchLabels: {{- include "gt.labels" (dict "root" . "component" "streamer") | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "gt.labels" (dict "root" . "component" "streamer") | nindent 8 }}
+    spec:
+      containers:
+        - name: streamer
+          {{- include "gt.image" . | nindent 10 }}
+          command: ["streamer"]
+          {{- include "gt.securityContext" . | nindent 10 }}
+          env:
+            - { name: BROKER_URL, value: {{ include "gt.brokerURL" . | quote }} }
+            - { name: STREAM_INTERVAL, value: {{ .Values.streamer.interval | quote }} }
+            - { name: BATCH_SIZE, value: {{ .Values.streamer.batchSize | quote }} }
+          resources: {{- toYaml .Values.streamer.resources | nindent 12 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-collector
+  labels: {{- include "gt.labels" (dict "root" . "component" "collector") | nindent 4 }}
+spec:
+  replicas: {{ .Values.collector.replicas }}
+  selector:
+    matchLabels: {{- include "gt.labels" (dict "root" . "component" "collector") | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "gt.labels" (dict "root" . "component" "collector") | nindent 8 }}
+    spec:
+      containers:
+        - name: collector
+          {{- include "gt.image" . | nindent 10 }}
+          command: ["collector"]
+          {{- include "gt.securityContext" . | nindent 10 }}
+          env:
+            - { name: BROKER_URL, value: {{ include "gt.brokerURL" . | quote }} }
+            - { name: BATCH_SIZE, value: {{ .Values.collector.batchSize | quote }} }
+            {{- include "gt.dbEnv" . | nindent 12 }}
+          resources: {{- toYaml .Values.collector.resources | nindent 12 }}

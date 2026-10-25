@@ -1,0 +1,58 @@
+# Local stack. Start with `make up`, which generates .env with a random DB password.
+x-app: &app
+  build: .
+  image: gpu-telemetry:local
+  restart: unless-stopped
+  read_only: true
+  security_opt: ["no-new-privileges:true"]
+
+x-db-env: &db-env
+  STORE: postgres
+  DATABASE_URL: postgres://telemetry:${POSTGRES_PASSWORD:?run 'make up' to generate .env}@timescaledb:5432/telemetry?sslmode=disable
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:2.17.2-pg16
+    environment:
+      POSTGRES_USER: telemetry
+      POSTGRES_DB: telemetry
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run 'make up' to generate .env}
+    volumes: ["db-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U telemetry -d telemetry"]
+      interval: 3s
+      retries: 20
+
+  broker:
+    <<: *app
+    command: ["broker"]
+    volumes: ["broker-data:/var/lib/broker"]
+
+  streamer:
+    <<: *app
+    command: ["streamer"]
+    environment:
+      BROKER_URL: http://broker:9000
+    depends_on: [broker]
+
+  collector:
+    <<: *app
+    command: ["collector"]
+    environment:
+      <<: *db-env
+      BROKER_URL: http://broker:9000
+    depends_on:
+      broker: { condition: service_started }
+      timescaledb: { condition: service_healthy }
+
+  api:
+    <<: *app
+    command: ["api"]
+    environment: *db-env
+    ports: ["8080:8080"]
+    depends_on:
+      timescaledb: { condition: service_healthy }
+
+volumes:
+  db-data:
+  broker-data:
